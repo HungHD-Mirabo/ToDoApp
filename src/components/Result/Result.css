@@ -1,0 +1,45 @@
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.todo-item input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.todo-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 0.9em;
+  color: #777;
+}
+
+.todo-footer .filters {
+  display: flex;
+  gap: 10px;
+}
+
+.todo-footer .filters span {
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+}
+
+.todo-footer .filters span.active {
+  border-color: #e35d6a;
+}
+
+.todo-footer .clear {
+  cursor: pointer;
+}

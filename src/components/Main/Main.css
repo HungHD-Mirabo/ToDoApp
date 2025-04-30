@@ -1,0 +1,27 @@
+main {
+  background-color: white;
+  width: 400px;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.todo-input {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+select {
+  border: none;
+  margin-right: 10px;
+  font-size: 1em;
+}
+
+.todo-input input {
+  border: none;
+  flex-grow: 1;
+  font-size: 1em;
+  outline: none;
+}
