@@ -2,18 +2,12 @@ import React from "react";
 import "./Main.css";
 import { Result } from "../Result/Result";
 import Pagination from "../Pagination/Pagination";
+import { Input } from "../Input/Input";
+import { ThemeContext } from "../../ThemeContext";
 
 export interface Item {
   title: string;
   completed: boolean;
-}
-
-interface MainState {
-  name: string;
-  filter: string;
-  items: Item[];
-  currentPage: number;
-  itemsPage: Item[];
 }
 
 export const filterOptions = [
@@ -22,33 +16,39 @@ export const filterOptions = [
   { value: "completed", label: "Completed" },
 ];
 
-export class Main extends React.Component<any, MainState> {
-  itemsPerPage: number = 5;
-  totalPages: number = 0;
-  currentPage: number = 1;
-  totalItems: number = 0;
+interface UpdateItemContextType {
+  updateItem: Item | null;
+  setUpdateItem: (item: Item | null) => void;
+}
+export const UpdateItemContext =
+  React.createContext<UpdateItemContextType | null>(null);
 
-  constructor(props: any) {
+interface MainState {
+  name: string;
+  filter: string;
+  items: Item[];
+  currentPage: number;
+  itemsPage: Item[];
+  updateItem: Item | null;
+}
+
+export class Main extends React.Component<{}, MainState> {
+  itemsPerPage = 5;
+
+  constructor(props: {}) {
     super(props);
     this.state = {
       name: "",
-      items: [] as Item[],
-      itemsPage: [] as Item[],
+      items: [],
+      itemsPage: [],
       filter: "all",
       currentPage: 1,
+      updateItem: null,
     };
   }
 
-  componentDidMount(): void {
-    this.totalItems = this.state.items.length;
-    this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
-  }
-
-  componentDidUpdate(
-    prevProps: Readonly<any>,
-    prevState: Readonly<MainState>
-  ): void {
-    const { items, filter, currentPage } = this.state;
+  componentDidUpdate(_: {}, prevState: MainState) {
+    const { items, filter, currentPage, updateItem } = this.state;
 
     if (
       prevState.items !== items ||
@@ -56,60 +56,58 @@ export class Main extends React.Component<any, MainState> {
       prevState.currentPage !== currentPage
     ) {
       let filteredItems = items;
-      if (filter === "active") {
-        filteredItems = items.filter((item) => !item.completed);
-      } else if (filter === "completed") {
-        filteredItems = items.filter((item) => item.completed);
-      }
 
-      const totalItems = filteredItems.length;
-      const totalPages = Math.ceil(totalItems / this.itemsPerPage);
+      if (filter === "active")
+        filteredItems = items.filter((i) => !i.completed);
+      else if (filter === "completed")
+        filteredItems = items.filter((i) => i.completed);
 
       const start = (currentPage - 1) * this.itemsPerPage;
       const end = currentPage * this.itemsPerPage;
-      const itemsPage = filteredItems.slice(start, end);
 
-      this.totalItems = totalItems;
-      this.totalPages = totalPages;
-      this.setState({ itemsPage });
+      this.setState({ itemsPage: filteredItems.slice(start, end) });
+    }
+
+    if (prevState.updateItem !== updateItem) {
+      this.setState({ name: updateItem?.title || "" });
     }
   }
 
-  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    this.setState({ name: value });
+  handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+
+    const { name, updateItem, items } = this.state;
+
+    if (updateItem) {
+      const updatedItems = items.map((item) =>
+        item.title === updateItem.title
+          ? { ...item, title: name, completed: false }
+          : item
+      );
+      this.setState({ items: updatedItems, name: "", updateItem: null });
+    } else {
+      this.setState({
+        items: [...items, { title: name, completed: false }],
+        name: "",
+      });
+    }
   };
 
-  hanndleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      this.setState({
-        items: [
-          ...this.state.items,
-          { title: this.state.name, completed: false },
-        ],
-      });
-      this.setState({ name: "" });
-    }
+  handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ name: e.target.value });
   };
 
   handleChangeFilter = (filter: string) => {
     this.setState({ filter });
   };
 
-  handleUpdateItem = (index: number, item: Item) => {
+  toggleItem = (index: number) => {
     const updatedItems = [...this.state.items];
     const updatedItem = updatedItems[index];
     updatedItems[index] = {
       ...updatedItem,
-      title: item.title,
-      completed: item.completed,
+      completed: !updatedItem.completed,
     };
-    this.setState({ items: updatedItems, name: "" });
-  };
-
-  toggleItem = (index: number) => {
-    const updatedItems = [...this.state.items];
-    updatedItems[index].completed = !updatedItems[index].completed;
     this.setState({ items: updatedItems });
   };
 
@@ -119,48 +117,66 @@ export class Main extends React.Component<any, MainState> {
   };
 
   changePage = (page: number) => {
-    if (page === 1) {
-      this.currentPage = 1;
-    }
-    if (page === this.totalPages) {
-      this.currentPage = this.totalPages;
-    }
-    this.setState({ currentPage: this.currentPage });
+    const validPage = Math.max(1, Math.min(page, this.totalPages));
+    this.setState({ currentPage: validPage });
   };
 
+  get totalPages(): number {
+    const filteredItems = this.getFilteredItems();
+    return Math.ceil(filteredItems.length / this.itemsPerPage);
+  }
+
+  getFilteredItems(): Item[] {
+    const { items, filter } = this.state;
+    if (filter === "active") return items.filter((i) => !i.completed);
+    if (filter === "completed") return items.filter((i) => i.completed);
+    return items;
+  }
+
   render() {
-    const { name, items, itemsPage, filter } = this.state;
+    const { itemsPage, filter, name, updateItem, currentPage } = this.state;
+
+    const contextValue: UpdateItemContextType = {
+      updateItem,
+      setUpdateItem: (item) => this.setState({ updateItem: item }),
+    };
+
     return (
-      <div>
-        <main>
-          <section className="todo-input">
-            <select>
-              <option>▼</option>
-            </select>
-            <input
-              value={name}
-              onChange={this.handleChange}
-              onKeyDown={this.hanndleKeyDown}
-              type="text"
-              placeholder="What needs to be done?"
-            ></input>
-          </section>
-          <Result
-            items={itemsPage}
-            toggleItem={this.toggleItem}
-            handleUpdateItem={this.handleUpdateItem}
-            filter={filter}
-            handleChangeFilter={this.handleChangeFilter}
-            handleClearCompleted={this.handleClearCompleted}
-          />
-        </main>
-        <Pagination
-          currentPage={this.currentPage}
-          handlePageChange={this.changePage}
-          itemsPerPage={this.itemsPerPage}
-          totalPages={this.totalPages}
-        />
-      </div>
+      <ThemeContext.Consumer>
+        {(themeContext) => {
+          const darkMode = themeContext?.darkMode ?? false;
+          return (
+            <div className={`main-container ${darkMode ? "dark-mode" : ""}`}>
+              <UpdateItemContext.Provider value={contextValue}>
+                <main>
+                  <section className="todo-input">
+                    <Input
+                      name={name}
+                      handleKeyDown={this.handleKeyDown}
+                      handleChange={this.handleChange}
+                    />
+                  </section>
+
+                  <Result
+                    items={itemsPage}
+                    toggleItem={this.toggleItem}
+                    filter={filter}
+                    handleChangeFilter={this.handleChangeFilter}
+                    handleClearCompleted={this.handleClearCompleted}
+                  />
+                </main>
+
+                <Pagination
+                  currentPage={currentPage}
+                  handlePageChange={this.changePage}
+                  itemsPerPage={this.itemsPerPage}
+                  totalPages={this.totalPages}
+                />
+              </UpdateItemContext.Provider>
+            </div>
+          );
+        }}
+      </ThemeContext.Consumer>
     );
   }
 }

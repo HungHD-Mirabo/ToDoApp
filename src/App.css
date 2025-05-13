@@ -7,6 +7,15 @@
   gap: 30px;
 }
 
+.dark-mode {
+  background-color: #282c34;
+  color: white;
+}
+.light-mode {
+  background-color: #f0f0f0;
+  color: black;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

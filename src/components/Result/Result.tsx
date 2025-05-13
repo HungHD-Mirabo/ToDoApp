@@ -10,7 +10,6 @@ interface ResultProps {
     completed: boolean;
   }[];
   toggleItem: (index: number) => void;
-  handleUpdateItem: (index: number, item: Item) => void;
   filter: string;
   handleChangeFilter: (filter: string) => void;
   handleClearCompleted: () => void;
@@ -21,7 +20,6 @@ export class Result extends React.Component<ResultProps> {
     const {
       items,
       toggleItem,
-      handleUpdateItem,
       filter,
       handleChangeFilter,
       handleClearCompleted,
@@ -42,7 +40,6 @@ export class Result extends React.Component<ResultProps> {
                   item={item}
                   index={index}
                   toggleItem={toggleItem}
-                  handleUpdateItem={handleUpdateItem}
                 />
               );
             }
