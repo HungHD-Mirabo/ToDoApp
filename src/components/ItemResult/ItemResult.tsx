@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Item, UpdateItemContext } from "../Main/Main";
 import "./ItemResult.css";
 
@@ -11,49 +11,50 @@ interface ItemProps {
   toggleItem: (index: number) => void;
 }
 
-interface State {
-  updateItem: Item | null;
-}
+export function ItemResult({ item, index, toggleItem }: ItemProps) {
+  const context = useContext(UpdateItemContext);
 
-export class ItemResult extends React.Component<ItemProps, State> {
-  constructor(props: ItemProps) {
-    super(props);
-    this.state = {
-      updateItem: null,
-    };
+  if (!context) {
+    throw new Error("UpdateItemContext is not provided");
   }
 
-  checkIsCompleted = (completed: boolean) => {
+  const checkIsCompleted = (completed: boolean) => {
     return completed ? "completed" : "";
   };
 
-  render() {
-    const { item, index, toggleItem } = this.props;
-    return (
-      <UpdateItemContext.Consumer>
-        {(context) => {
-          if (!context) {
-            throw new Error("UpdateItemContext is not provided");
-          }
-          return (
-            <li className="todo-item" key={index}>
-              <input
-                type="checkbox"
-                checked={item.completed}
-                onClick={() => toggleItem(index)}
-              />
-              <div
-                className="todo-item-title"
-                onDoubleClick={() => {
-                  context.setUpdateItem(item);
-                }}
-              >
-                {item.title}
-              </div>
-            </li>
-          );
-        }}
-      </UpdateItemContext.Consumer>
-    );
-  }
+  return (
+    <li className={`todo-item ${checkIsCompleted(item.completed)}`} key={index}>
+      <input
+        type="checkbox"
+        checked={item.completed}
+        onChange={() => toggleItem(index)}
+      />
+      {context.updateItem?.title === item.title ? (
+        <input
+          type="text"
+          value={item.title}
+          onChange={(e) => {
+            context.setUpdateItem({ ...item, title: e.target.value });
+          }}
+          onBlur={() => context.setUpdateItem(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              context.setUpdateItem(null);
+            }
+          }}
+          autoFocus
+        />
+      ) : (
+        <div
+          className="todo-item-title"
+          onDoubleClick={() => context.setUpdateItem(item)}
+          style={{
+            textDecoration: item.completed ? 'line-through' : 'none'
+          }}
+        >
+          {item.title}
+        </div>
+      )}
+    </li>
+  );
 }

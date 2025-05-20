@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState, useContext } from "react";
 import "./Main.css";
 import { Result } from "../Result/Result";
-import Pagination from "../Pagination/Pagination";
 import { Input } from "../Input/Input";
 import { ThemeContext } from "../../ThemeContext";
 
@@ -20,63 +19,35 @@ interface UpdateItemContextType {
   updateItem: Item | null;
   setUpdateItem: (item: Item | null) => void;
 }
+
 export const UpdateItemContext =
   React.createContext<UpdateItemContextType | null>(null);
 
-interface MainState {
-  name: string;
-  filter: string;
-  items: Item[];
-  currentPage: number;
-  itemsPage: Item[];
-  updateItem: Item | null;
-}
+export default function Main() {
+  const itemsPerPage = 5;
+  const [name, setName] = useState("");
+  const [items, setItems] = useState<Item[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [displayCount, setDisplayCount] = useState(itemsPerPage);
+  const [updateItem, setUpdateItem] = useState<Item | null>(null);
 
-export class Main extends React.Component<{}, MainState> {
-  itemsPerPage = 5;
+  const filteredItems = items.filter((item) => {
+    if (filter === "all") return true;
+    if (filter === "active") return !item.completed;
+    if (filter === "completed") return item.completed;
+    return true;
+  });
 
-  constructor(props: {}) {
-    super(props);
-    this.state = {
-      name: "",
-      items: [],
-      itemsPage: [],
-      filter: "all",
-      currentPage: 1,
-      updateItem: null,
-    };
-  }
+  const loadMoreItems = async () => {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setDisplayCount(prev => {
+      const newCount = Math.min(prev + itemsPerPage, filteredItems.length);
+      return newCount;
+    });
+  };
 
-  componentDidUpdate(_: {}, prevState: MainState) {
-    const { items, filter, currentPage, updateItem } = this.state;
-
-    if (
-      prevState.items !== items ||
-      prevState.filter !== filter ||
-      prevState.currentPage !== currentPage
-    ) {
-      let filteredItems = items;
-
-      if (filter === "active")
-        filteredItems = items.filter((i) => !i.completed);
-      else if (filter === "completed")
-        filteredItems = items.filter((i) => i.completed);
-
-      const start = (currentPage - 1) * this.itemsPerPage;
-      const end = currentPage * this.itemsPerPage;
-
-      this.setState({ itemsPage: filteredItems.slice(start, end) });
-    }
-
-    if (prevState.updateItem !== updateItem) {
-      this.setState({ name: updateItem?.title || "" });
-    }
-  }
-
-  handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleAddItem = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
-
-    const { name, updateItem, items } = this.state;
 
     if (updateItem) {
       const updatedItems = items.map((item) =>
@@ -84,99 +55,75 @@ export class Main extends React.Component<{}, MainState> {
           ? { ...item, title: name, completed: false }
           : item
       );
-      this.setState({ items: updatedItems, name: "", updateItem: null });
+      setItems(updatedItems);
+      setName("");
+      setUpdateItem(null);
     } else {
-      this.setState({
-        items: [...items, { title: name, completed: false }],
-        name: "",
-      });
+      setItems([...items, { title: name, completed: false }]);
+      setName("");
     }
   };
 
-  handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ name: e.target.value });
+  const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
   };
 
-  handleChangeFilter = (filter: string) => {
-    this.setState({ filter });
+  const handleChangeFilter = (newFilter: string) => {
+    setFilter(newFilter);
+    setDisplayCount(itemsPerPage);
   };
 
-  toggleItem = (index: number) => {
-    const updatedItems = [...this.state.items];
+  const toggleItem = (index: number) => {
+    const updatedItems = [...items];
     const updatedItem = updatedItems[index];
     updatedItems[index] = {
       ...updatedItem,
       completed: !updatedItem.completed,
     };
-    this.setState({ items: updatedItems });
+    setItems(updatedItems);
   };
 
-  handleClearCompleted = () => {
-    const updatedItems = this.state.items.filter((item) => !item.completed);
-    this.setState({ items: updatedItems });
+  const handleClearCompleted = () => {
+    const updatedItems = items.filter((item) => !item.completed);
+    setItems(updatedItems);
   };
 
-  changePage = (page: number) => {
-    const validPage = Math.max(1, Math.min(page, this.totalPages));
-    this.setState({ currentPage: validPage });
+  const contextValue: UpdateItemContextType = {
+    updateItem,
+    setUpdateItem,
   };
 
-  get totalPages(): number {
-    const filteredItems = this.getFilteredItems();
-    return Math.ceil(filteredItems.length / this.itemsPerPage);
+  const themeContext = useContext(ThemeContext);
+
+  if (!themeContext) {
+    return null;
   }
 
-  getFilteredItems(): Item[] {
-    const { items, filter } = this.state;
-    if (filter === "active") return items.filter((i) => !i.completed);
-    if (filter === "completed") return items.filter((i) => i.completed);
-    return items;
-  }
+  const { darkMode } = themeContext;
 
-  render() {
-    const { itemsPage, filter, name, updateItem, currentPage } = this.state;
+  return (
+    <div className={`main-container ${darkMode ? "dark-mode" : ""}`}>
+      <UpdateItemContext.Provider value={contextValue}>
+        <main>
+          <section className="todo-input">
+            <Input
+              name={name}
+              handleKeyDown={handleAddItem}
+              handleChange={handleChangeInput}
+            />
+          </section>
 
-    const contextValue: UpdateItemContextType = {
-      updateItem,
-      setUpdateItem: (item) => this.setState({ updateItem: item }),
-    };
-
-    return (
-      <ThemeContext.Consumer>
-        {(themeContext) => {
-          const darkMode = themeContext?.darkMode ?? false;
-          return (
-            <div className={`main-container ${darkMode ? "dark-mode" : ""}`}>
-              <UpdateItemContext.Provider value={contextValue}>
-                <main>
-                  <section className="todo-input">
-                    <Input
-                      name={name}
-                      handleKeyDown={this.handleKeyDown}
-                      handleChange={this.handleChange}
-                    />
-                  </section>
-
-                  <Result
-                    items={itemsPage}
-                    toggleItem={this.toggleItem}
-                    filter={filter}
-                    handleChangeFilter={this.handleChangeFilter}
-                    handleClearCompleted={this.handleClearCompleted}
-                  />
-                </main>
-
-                <Pagination
-                  currentPage={currentPage}
-                  handlePageChange={this.changePage}
-                  itemsPerPage={this.itemsPerPage}
-                  totalPages={this.totalPages}
-                />
-              </UpdateItemContext.Provider>
-            </div>
-          );
-        }}
-      </ThemeContext.Consumer>
-    );
-  }
+          <Result
+            items={filteredItems.slice(0, displayCount)}
+            toggleItem={toggleItem}
+            filter={filter}
+            handleChangeFilter={handleChangeFilter}
+            handleClearCompleted={handleClearCompleted}
+            loadMore={loadMoreItems}
+            hasMore={displayCount < filteredItems.length}
+          />
+        </main>
+      </UpdateItemContext.Provider>
+    </div>
+  );
 }

@@ -1,7 +1,7 @@
 import React from "react";
 import "./App.css";
 import { Header } from "./components/Header/Header";
-import { Main } from "./components/Main/Main";
+import Main from "./components/Main/Main";
 import { Footer } from "./components/Footer/Footer";
 import { ThemeContext } from "./ThemeContext";
 
@@ -13,7 +13,7 @@ class App extends React.Component<{}, AppState> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      darkMode: false
+      darkMode: false,
     };
   }
 
@@ -23,11 +23,13 @@ class App extends React.Component<{}, AppState> {
 
   render() {
     return (
-      <div className={`App ${this.state.darkMode ? 'dark-mode' : ''}`}>
-        <ThemeContext.Provider value={{ 
-          darkMode: this.state.darkMode, 
-          setDarkMode: this.setDarkMode 
-        }}>
+      <div className={`App ${this.state.darkMode ? "dark-mode" : ""}`}>
+        <ThemeContext.Provider
+          value={{
+            darkMode: this.state.darkMode,
+            setDarkMode: this.setDarkMode,
+          }}
+        >
           <Header />
           <Main />
           <Footer />
